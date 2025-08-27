@@ -2,6 +2,15 @@
 
 [TOC]
 
+## Схемы архитектуры приложения
+
+- **Локальная инсталляция бэкенда:**  
+  [backend_local_installation.drawio.png](https://gitlab.dvmn.org/root/fastapi-articles/-/wikis/fastai/backend_local_installation.drawio.png)
+- **Prod инсталляция бэкенда:**  
+  [backend_prod_installation.drawio.png](https://gitlab.dvmn.org/root/fastapi-articles/-/wikis/fastai/backend_prod_installation.drawio.png)
+- **Декомпозиция бэкенда по подсистемам:**  
+  [backend_decomposition.drawio.png](https://gitlab.dvmn.org/root/fastapi-articles/-/wikis/fastai/backend_decomposition.drawio.png)
+
 ## Как развернуть локально
 
 ### Необходимое ПО
