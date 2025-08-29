@@ -1,6 +1,6 @@
 from fastapi import APIRouter, FastAPI
-from fastapi.responses import FileResponse
-from fastapi.staticfiles import StaticFiles
+
+from .apps.frontend import create_frontend_app
 
 api_router = APIRouter(prefix="/frontend-api")
 
@@ -14,10 +14,5 @@ app = FastAPI()
 app.include_router(api_router)
 
 
-@app.get("/frontend-settings.json")
-async def frontend_settings():
-    return FileResponse("frontend-settings.json", media_type="application/json")
-
-
-app.mount("/", StaticFiles(directory="frontend", html=True), name="static")
-app.mount("/assets", StaticFiles(directory="frontend/assets"), name="assets")
+frontend_app = create_frontend_app()
+app.mount("/", frontend_app)
