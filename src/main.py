@@ -1,10 +1,11 @@
+import asyncio
 from collections.abc import AsyncGenerator
 from datetime import datetime
 from typing import Annotated
 
 import aiofiles
 from fastapi import APIRouter, FastAPI
-from fastapi.responses import StreamingResponse
+from fastapi.responses import FileResponse, StreamingResponse
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
 from pydantic.alias_generators import to_camel
 
@@ -67,7 +68,7 @@ async def me() -> UserDetailsResponse:
 
 
 class CreateSiteRequest(BaseModel):
-    title: str | None = Field(description="Название сайта")
+    title: str | None = Field(default=None, description="Название сайта")
     prompt: str = Field(description="Prompt для создания сайта")
 
     model_config = ConfigDict(
@@ -85,9 +86,9 @@ class CreateSiteRequest(BaseModel):
 class SiteResponse(BaseModel):
     id: int = Field(description="ID сайта")
     title: str = Field(description="Название сайта")
-    html_code_url: str | None = Field(description="URL HTML кода сайта")
-    html_code_download_url: str | None = Field(description="URL скачивания HTML кода сайта")
-    screenshot_url: str | None = Field(description="URL скриншота сайта")
+    html_code_url: str | None = Field(default=None, description="URL HTML кода сайта")
+    html_code_download_url: str | None = Field(default=None, description="URL скачивания HTML кода сайта")
+    screenshot_url: str | None = Field(default=None, description="URL скриншота сайта")
     prompt: str = Field(description="Prompt для создания сайта")
     created_at: str = Field(description="Дата создания сайта")
     updated_at: str = Field(description="Дата обновления сайта")
@@ -125,11 +126,11 @@ class GeneratedSiteResponse(SiteResponse):
 async def create_site(request: CreateSiteRequest) -> GeneratedSiteResponse:
     site_data = {
         "id": 1,
-        "title": request.title,
+        "title": "Сайт о стегозаврах",
         "prompt": request.prompt,
-        "screenshot_url": "https://example.com",
-        "html_code_url": "https://example.com",
-        "html_code_download_url": "https://example.com",
+        "screenshot_url": None,
+        "html_code_url": None,
+        "html_code_download_url": None,
         "created_at": "2025-06-15T18:29:56+00:00",
         "updated_at": "2025-06-15T18:29:56+00:00",
     }
@@ -156,6 +157,7 @@ async def site_generate_logic(site_id: int, prompt: str) -> AsyncGenerator[str, 
         async with aiofiles.open(file_path, encoding="utf-8") as f:
             async for line in f:
                 yield line
+                await asyncio.sleep(0.00001)
     except FileNotFoundError:
         yield "<html><body><h1>Site not found</h1></body></html>"
 
@@ -173,7 +175,7 @@ async def generate_site(site_id: int, request: SiteGenerateRequest) -> Streaming
 
 
 @api_router.get(
-    "/sites/{site_id}/",
+    "/sites/{site_id}",
     summary="Получить сайт",
     description="Получить сайт по ID.",
 )
@@ -182,12 +184,43 @@ async def get_site(site_id: int) -> SiteResponse:
         id=site_id,
         title="Сайт о стегозаврах",
         prompt="Сайт о стегозаврах",
-        screenshot_url="https://example.com",
-        html_code_url="https://example.com",
-        html_code_download_url="https://example.com",
+        screenshot_url=None,
+        html_code_url="http://127.0.0.1:8000/frontend-api/media/index.html",
+        html_code_download_url="http://127.0.0.1:8000/frontend-api/media/index.html?response-content-disposition=attachment",
         created_at="2025-06-15T18:29:56+00:00",
         updated_at="2025-06-15T18:29:56+00:00",
     )
+
+
+@api_router.get(
+    "/sites/my",
+    summary="Получить список сайтов текущего пользователя",
+    description="Выдать список сайтов текущего пользователя",
+)
+async def get_sites_my() -> dict[str, list[SiteResponse]]:
+    return {
+        "sites": [
+            SiteResponse(
+                id=1,
+                title="Сайт о стегозаврах",
+                prompt="Сайт о стегозаврах",
+                screenshot_url=None,
+                html_code_url="http://127.0.0.1:8000/frontend-api/media/index.html",
+                html_code_download_url="http://127.0.0.1:8000/frontend-api/media/index.html?response-content-disposition=attachment",
+                created_at="2025-06-15T18:29:56+00:00",
+                updated_at="2025-06-15T18:29:56+00:00",
+            ),
+        ],
+    }
+
+
+@api_router.get(
+    "/media/index.html",
+    summary="Получить index.html",
+    description="Выдать файл index.html из корневой папки",
+)
+async def get_index_html():
+    return FileResponse("index.html", media_type="text/html")
 
 
 app = FastAPI()
