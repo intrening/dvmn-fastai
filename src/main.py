@@ -6,7 +6,7 @@ from typing import Annotated
 import aiofiles
 from fastapi import APIRouter, FastAPI
 from fastapi.responses import FileResponse, StreamingResponse
-from pydantic import BaseModel, ConfigDict, EmailStr, Field
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, PositiveInt
 from pydantic.alias_generators import to_camel
 
 from .apps.frontend import create_frontend_app
@@ -23,9 +23,11 @@ UserName = Annotated[
 
 
 class UserDetailsResponse(BaseModel):
+    """Информация о текущем пользователе"""
+
     email: EmailStr = Field(description="Email пользователя")
     is_active: bool = Field(description="Активен ли пользователь")
-    profile_id: int = Field(description="ID профиля пользователя")
+    profile_id: PositiveInt = Field(description="ID профиля пользователя")
     registered_at: datetime = Field(description="Дата регистрации пользователя")
     updated_at: datetime = Field(description="Дата обновления профиля пользователя")
     username: UserName = Field(description="Имя пользователя")
@@ -55,19 +57,19 @@ class UserDetailsResponse(BaseModel):
     description="Возвращает данные профиля текущего авторизованного пользователя.",
 )
 async def me() -> UserDetailsResponse:
-    user_data = {
-        "email": "example@example.com",
-        "is_active": True,
-        "profile_id": 1,
-        "registered_at": datetime(2025, 6, 15, 18, 29, 56),
-        "updated_at": datetime(2025, 6, 15, 18, 29, 56),
-        "username": "user123",
-    }
-
-    return user_data
+    return UserDetailsResponse(
+        email="example@example.com",
+        is_active=True,
+        profile_id=1,
+        registered_at=datetime(2025, 6, 15, 18, 29, 56),
+        updated_at=datetime(2025, 6, 15, 18, 29, 56),
+        username="user123",
+    )
 
 
 class CreateSiteRequest(BaseModel):
+    """Запрос на создание сайта"""
+
     title: str | None = Field(default=None, description="Название сайта")
     prompt: str = Field(description="Prompt для создания сайта")
 
@@ -84,14 +86,16 @@ class CreateSiteRequest(BaseModel):
 
 
 class SiteResponse(BaseModel):
-    id: int = Field(description="ID сайта")
+    """Информация о сайте"""
+
+    id: PositiveInt = Field(description="ID сайта")
     title: str = Field(description="Название сайта")
     html_code_url: str | None = Field(default=None, description="URL HTML кода сайта")
     html_code_download_url: str | None = Field(default=None, description="URL скачивания HTML кода сайта")
     screenshot_url: str | None = Field(default=None, description="URL скриншота сайта")
     prompt: str = Field(description="Prompt для создания сайта")
-    created_at: str = Field(description="Дата создания сайта")
-    updated_at: str = Field(description="Дата обновления сайта")
+    created_at: datetime = Field(description="Дата создания сайта")
+    updated_at: datetime = Field(description="Дата обновления сайта")
 
     model_config = ConfigDict(
         alias_generator=to_camel,
@@ -99,14 +103,14 @@ class SiteResponse(BaseModel):
         json_schema_extra={
             "examples": [
                 {
-                    "created_at": "2025-06-15T18:29:56+00:00",
+                    "created_at": datetime(2025, 6, 15, 18, 29, 56).isoformat(),
                     "html_code_download_url": "http://example.com/media/index.html?response-content-disposition=attachment",
                     "html_code_url": "http://example.com/media/index.html",
                     "id": 1,
                     "prompt": "Сайт любителей играть в домино",
                     "screenshot_url": "http://example.com/media/index.png",
                     "title": "Фан клуб Домино",
-                    "updated_at": "2025-06-15T18:29:56+00:00",
+                    "updated_at": datetime(2025, 6, 15, 18, 29, 56).isoformat(),
                 },
             ],
         },
@@ -114,6 +118,8 @@ class SiteResponse(BaseModel):
 
 
 class GeneratedSiteResponse(SiteResponse):
+    """Информация о сгенерированном сайте"""
+
     pass
 
 
@@ -124,20 +130,21 @@ class GeneratedSiteResponse(SiteResponse):
     description="Создает сайт для текущего пользователя.",
 )
 async def create_site(request: CreateSiteRequest) -> GeneratedSiteResponse:
-    site_data = {
-        "id": 1,
-        "title": "Сайт о стегозаврах",
-        "prompt": request.prompt,
-        "screenshot_url": None,
-        "html_code_url": None,
-        "html_code_download_url": None,
-        "created_at": "2025-06-15T18:29:56+00:00",
-        "updated_at": "2025-06-15T18:29:56+00:00",
-    }
-    return site_data
+    return GeneratedSiteResponse(
+        id=1,
+        title="Сайт о стегозаврах",
+        prompt=request.prompt,
+        screenshot_url=None,
+        html_code_url=None,
+        html_code_download_url=None,
+        created_at=datetime(2025, 6, 15, 18, 29, 56),
+        updated_at=datetime(2025, 6, 15, 18, 29, 56),
+    )
 
 
 class SiteGenerateRequest(BaseModel):
+    """Запрос на генерацию сайта"""
+
     prompt: str = Field(description="Prompt для создания сайта")
 
     model_config = ConfigDict(
@@ -175,24 +182,6 @@ async def generate_site(site_id: int, request: SiteGenerateRequest) -> Streaming
 
 
 @api_router.get(
-    "/sites/{site_id}",
-    summary="Получить сайт",
-    description="Получить сайт по ID.",
-)
-async def get_site(site_id: int) -> SiteResponse:
-    return SiteResponse(
-        id=site_id,
-        title="Сайт о стегозаврах",
-        prompt="Сайт о стегозаврах",
-        screenshot_url=None,
-        html_code_url="http://127.0.0.1:8000/frontend-api/media/index.html",
-        html_code_download_url="http://127.0.0.1:8000/frontend-api/media/index.html?response-content-disposition=attachment",
-        created_at="2025-06-15T18:29:56+00:00",
-        updated_at="2025-06-15T18:29:56+00:00",
-    )
-
-
-@api_router.get(
     "/sites/my",
     summary="Получить список сайтов текущего пользователя",
     description="Выдать список сайтов текущего пользователя",
@@ -207,11 +196,29 @@ async def get_sites_my() -> dict[str, list[SiteResponse]]:
                 screenshot_url=None,
                 html_code_url="http://127.0.0.1:8000/frontend-api/media/index.html",
                 html_code_download_url="http://127.0.0.1:8000/frontend-api/media/index.html?response-content-disposition=attachment",
-                created_at="2025-06-15T18:29:56+00:00",
-                updated_at="2025-06-15T18:29:56+00:00",
+                created_at=datetime(2025, 6, 15, 18, 29, 56),
+                updated_at=datetime(2025, 6, 15, 18, 29, 56),
             ),
         ],
     }
+
+
+@api_router.get(
+    "/sites/{site_id}",
+    summary="Получить сайт",
+    description="Получить сайт по ID.",
+)
+async def get_site(site_id: int) -> SiteResponse:
+    return SiteResponse(
+        id=site_id,
+        title="Сайт о стегозаврах",
+        prompt="Сайт о стегозаврах",
+        screenshot_url=None,
+        html_code_url="http://127.0.0.1:8000/frontend-api/media/index.html",
+        html_code_download_url="http://127.0.0.1:8000/frontend-api/media/index.html?response-content-disposition=attachment",
+        created_at=datetime(2025, 6, 15, 18, 29, 56),
+        updated_at=datetime(2025, 6, 15, 18, 29, 56),
+    )
 
 
 @api_router.get(
@@ -219,7 +226,7 @@ async def get_sites_my() -> dict[str, list[SiteResponse]]:
     summary="Получить index.html",
     description="Выдать файл index.html из корневой папки",
 )
-async def get_index_html():
+async def get_index_html() -> FileResponse:
     return FileResponse("index.html", media_type="text/html")
 
 
