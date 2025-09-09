@@ -1,7 +1,6 @@
 from fastapi import FastAPI
 
-from env_settings import AppSettings
-
+from .core.config import AppSettings
 from .frontend import create_frontend_app
 from .frontend_api.app import api_router as frontend_api_router
 
