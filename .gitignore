@@ -8,3 +8,4 @@ tmp*
 .DS_Store
 src/apps/frontend/frontend/
 .vscode/
+*.env.local
