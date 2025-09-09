@@ -1,12 +1,24 @@
 from pydantic import Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-# class DatabaseSettings(BaseSettings):
-#     host: str = "localhost"
-#     port: int = 5432
+
+class DeepSeekSettings(BaseSettings):
+    """DeepSeek API settings"""
+
+    api_key: SecretStr = Field(
+        ...,
+        description="DeepSeek API key",
+    )
+    max_connections: int | None = Field(
+        default=None,
+        description="DeepSeek API max connections",
+        ge=1,
+    )
 
 
 class UnsplashSettings(BaseSettings):
+    """Unsplash API settings"""
+
     app_id: str = Field(
         ...,
         description="Unsplash API app ID",
@@ -18,6 +30,16 @@ class UnsplashSettings(BaseSettings):
     secret_key: SecretStr = Field(
         ...,
         description="Unsplash API secret key",
+    )
+    max_connections: int | None = Field(
+        default=5,
+        description="Unsplash API max connections",
+        ge=1,
+    )
+    timeout: int = Field(
+        default=20,
+        description="Unsplash API timeout",
+        ge=1,
     )
 
 
@@ -31,9 +53,7 @@ class AppSettings(BaseSettings):
         use_attribute_docstrings=True,
     )
 
-    unsplash: UnsplashSettings = Field(
-        ...,
-        description="Unsplash API settings",
-    )
+    unsplash: UnsplashSettings
+    deepseek: DeepSeekSettings
 
     debug: bool = False
