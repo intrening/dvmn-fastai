@@ -14,6 +14,19 @@ class DeepSeekSettings(BaseSettings):
         description="DeepSeek API max connections",
         ge=1,
     )
+    timeout: int = Field(
+        default=20,
+        description="DeepSeek API timeout",
+        ge=1,
+    )
+    base_url: str = Field(
+        default="https://api.deepseek.com/v1",
+        description="DeepSeek API base URL",
+    )
+    model: str = Field(
+        default="deepseek-chat",
+        description="DeepSeek model name",
+    )
 
 
 class UnsplashSettings(BaseSettings):
@@ -51,6 +64,7 @@ class AppSettings(BaseSettings):
         validate_default=True,
         env_nested_delimiter="__",
         use_attribute_docstrings=True,
+        extra="forbid",
     )
 
     unsplash: UnsplashSettings
