@@ -8,6 +8,7 @@ dependencies = [
     "aiofiles>=24.1.0",
     "editorconfig-checker==3.2.1",
     "fastapi[standard]==0.115.12",
+    "html-page-generator",
     "pre-commit>=4.3.0",
     "pydantic>=2.11.7",
     "pydantic-settings>=2.10.1",
@@ -47,3 +48,6 @@ exclude = [
 init_forbid_extra = true
 init_typed = true
 warn_untyped_fields = true
+
+[tool.uv.sources]
+html-page-generator = { git = "https://github.com/devmanorg/html-page-generator.git" }

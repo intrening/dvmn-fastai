@@ -1,10 +1,10 @@
-import asyncio
 from collections.abc import AsyncGenerator
 from datetime import datetime
 
-import aiofiles
+import anyio
 from fastapi import APIRouter
 from fastapi.responses import FileResponse, StreamingResponse
+from html_page_generator import AsyncPageGenerator
 
 from .schemas import (
     CreateSiteRequest,
@@ -12,7 +12,20 @@ from .schemas import (
     SiteGenerateRequest,
     SiteResponse,
 )
+from ...core.config import AppSettings
 
+GENERATED_HTML_FILE = "index.html"
+MOCK_TITLE = "Тестовый сайт"
+MOCK_PROMPT = "Тестовый промпт для сайта"
+MOCK_SCREENSHOT_URL = None
+MOCK_HTML_CODE_URL = "http://127.0.0.1:8000/frontend-api/media/index.html"
+MOCK_HTML_CODE_DOWNLOAD_URL = (
+    "http://127.0.0.1:8000/frontend-api/media/index.html?response-content-disposition=attachment"
+)
+MOCK_CREATED_AT = datetime(2025, 6, 15, 18, 29, 56)
+MOCK_UPDATED_AT = datetime(2025, 6, 15, 18, 29, 56)
+
+settings = AppSettings()
 router = APIRouter(tags=["Sites"])
 
 
@@ -25,37 +38,39 @@ router = APIRouter(tags=["Sites"])
 async def create_site(request: CreateSiteRequest) -> GeneratedSiteResponse:
     return GeneratedSiteResponse(
         id=1,
-        title="Сайт о стегозаврах",
+        title=MOCK_TITLE,
         prompt=request.prompt,
-        screenshot_url=None,
-        html_code_url=None,
-        html_code_download_url=None,
-        created_at=datetime(2025, 6, 15, 18, 29, 56),
-        updated_at=datetime(2025, 6, 15, 18, 29, 56),
+        screenshot_url=MOCK_SCREENSHOT_URL,
+        html_code_url=MOCK_HTML_CODE_URL,
+        html_code_download_url=MOCK_HTML_CODE_DOWNLOAD_URL,
+        created_at=MOCK_CREATED_AT,
+        updated_at=MOCK_UPDATED_AT,
     )
-
-
-async def site_generate_logic(site_id: int, prompt: str) -> AsyncGenerator[str, None]:
-    file_path = "index.html"
-    try:
-        async with aiofiles.open(file_path, encoding="utf-8") as f:
-            async for line in f:
-                yield line
-                await asyncio.sleep(0.05)
-    except FileNotFoundError:
-        yield "<html><body><h1>Site not found</h1></body></html>"
 
 
 @router.post(
     "/sites/{site_id}/generate",
     summary="Сгенерировать сайт",
-    description="Сгенерировать сайт по ID.",
+    description="Сгенерировать сайт по ID. Стримит HTML и параллельно пишет в index.html",
 )
 async def generate_site(site_id: int, request: SiteGenerateRequest) -> StreamingResponse:
-    return StreamingResponse(
-        content=site_generate_logic(site_id, request.prompt),
-        media_type="text/html",
-    )
+    html_chunks = AsyncPageGenerator(
+        debug_mode=settings.debug,
+    ).generate_html(request.prompt)
+
+    async def stream_and_write() -> AsyncGenerator[str, None]:
+        async with await anyio.open_file(GENERATED_HTML_FILE, mode="w", encoding="utf-8") as html_file:
+            try:
+                async for html_chunk in html_chunks:
+                    await html_file.write(html_chunk)
+                    yield html_chunk
+            except anyio.get_cancelled_exc_class():
+                with anyio.CancelScope(shield=True):
+                    async for html_chunk in html_chunks:
+                        await html_file.write(html_chunk)
+                raise
+
+    return StreamingResponse(content=stream_and_write(), media_type="text/html")
 
 
 @router.get(
@@ -68,13 +83,13 @@ async def get_sites_my() -> dict[str, list[SiteResponse]]:
         "sites": [
             SiteResponse(
                 id=1,
-                title="Сайт о стегозаврах",
-                prompt="Сайт о стегозаврах",
+                title=MOCK_TITLE,
+                prompt=MOCK_PROMPT,
                 screenshot_url=None,
-                html_code_url="http://127.0.0.1:8000/frontend-api/media/index.html",
-                html_code_download_url="http://127.0.0.1:8000/frontend-api/media/index.html?response-content-disposition=attachment",
-                created_at=datetime(2025, 6, 15, 18, 29, 56),
-                updated_at=datetime(2025, 6, 15, 18, 29, 56),
+                html_code_url=MOCK_HTML_CODE_URL,
+                html_code_download_url=MOCK_HTML_CODE_DOWNLOAD_URL,
+                created_at=MOCK_CREATED_AT,
+                updated_at=MOCK_UPDATED_AT,
             ),
         ],
     }
@@ -88,13 +103,13 @@ async def get_sites_my() -> dict[str, list[SiteResponse]]:
 async def get_site(site_id: int) -> SiteResponse:
     return SiteResponse(
         id=site_id,
-        title="Сайт о стегозаврах",
-        prompt="Сайт о стегозаврах",
-        screenshot_url=None,
-        html_code_url="http://127.0.0.1:8000/frontend-api/media/index.html",
-        html_code_download_url="http://127.0.0.1:8000/frontend-api/media/index.html?response-content-disposition=attachment",
-        created_at=datetime(2025, 6, 15, 18, 29, 56),
-        updated_at=datetime(2025, 6, 15, 18, 29, 56),
+        title=MOCK_TITLE,
+        prompt=MOCK_PROMPT,
+        screenshot_url=MOCK_SCREENSHOT_URL,
+        html_code_url=MOCK_HTML_CODE_URL,
+        html_code_download_url=MOCK_HTML_CODE_DOWNLOAD_URL,
+        created_at=MOCK_CREATED_AT,
+        updated_at=MOCK_UPDATED_AT,
     )
 
 
@@ -104,7 +119,7 @@ async def get_site(site_id: int) -> SiteResponse:
     description="Выдать файл index.html из корневой папки",
 )
 async def get_index_html() -> FileResponse:
-    return FileResponse("index.html", media_type="text/html")
+    return FileResponse(str(GENERATED_HTML_FILE), media_type="text/html")
 
 
 __all__ = ["router"]
