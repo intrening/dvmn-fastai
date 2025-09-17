@@ -10,3 +10,4 @@ src/frontend/frontend_files/
 .vscode/
 *.env.local
 index.html
+minio-data/
