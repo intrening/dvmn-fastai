@@ -2,6 +2,42 @@ from pydantic import Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
+class AWSSettings(BaseSettings):
+    """AWS settings"""
+
+    access_key: SecretStr = Field(
+        ...,
+        description="AWS access key",
+    )
+    secret_key: SecretStr = Field(
+        ...,
+        description="AWS secret key",
+    )
+    endpoint_url: str = Field(
+        ...,
+        description="AWS endpoint URL",
+    )
+    bucket_name: str = Field(
+        ...,
+        description="AWS bucket name",
+    )
+    read_timeout: int = Field(
+        default=20,
+        description="AWS read timeout",
+        ge=1,
+    )
+    connect_timeout: int = Field(
+        default=10,
+        description="AWS connect timeout",
+        ge=1,
+    )
+    max_pool_connections: int = Field(
+        default=10,
+        description="AWS max pool connections",
+        ge=1,
+    )
+
+
 class DeepSeekSettings(BaseSettings):
     """DeepSeek API settings"""
 
@@ -69,5 +105,6 @@ class AppSettings(BaseSettings):
 
     unsplash: UnsplashSettings
     deepseek: DeepSeekSettings
+    aws: AWSSettings
 
     debug: bool = False
