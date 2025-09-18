@@ -3,7 +3,8 @@ from datetime import datetime
 
 import anyio
 from fastapi import APIRouter
-from fastapi.responses import FileResponse, StreamingResponse
+from fastapi.responses import RedirectResponse, StreamingResponse
+from furl import furl
 from html_page_generator import AsyncPageGenerator
 
 from .schemas import (
@@ -24,6 +25,15 @@ MOCK_HTML_CODE_DOWNLOAD_URL = (
 )
 MOCK_CREATED_AT = datetime(2025, 6, 15, 18, 29, 56)
 MOCK_UPDATED_AT = datetime(2025, 6, 15, 18, 29, 56)
+
+
+def generated_html_file_url() -> str:
+    html_file_url = furl(settings.aws.endpoint_url)
+    html_file_url.path.add(settings.aws.bucket_name)
+    html_file_url.path.add(GENERATED_HTML_FILE)
+    html_file_url.args["response-content-disposition"] = "inline"
+    return html_file_url.url
+
 
 settings = AppSettings()
 router = APIRouter(tags=["Sites"])
@@ -116,10 +126,10 @@ async def get_site(site_id: int) -> SiteResponse:
 @router.get(
     "/media/index.html",
     summary="Получить index.html",
-    description="Выдать файл index.html из корневой папки",
+    description="Вернуть ссылку на сайт (редирект на хранилище)",
 )
-async def get_index_html() -> FileResponse:
-    return FileResponse(str(GENERATED_HTML_FILE), media_type="text/html")
+async def get_index_html() -> RedirectResponse:
+    return RedirectResponse(url=generated_html_file_url(), status_code=307)
 
 
 __all__ = ["router"]

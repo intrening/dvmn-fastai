@@ -126,6 +126,21 @@ $ make list
 ...
 ```
 
+## Локальное S3-хранилище MinIO для разработки
+
+Для локальной разработки используем S3-совместимое хранилище MinIO.
+
+### Установка и запуск (macOS, Homebrew)
+
+```shell
+$ brew install minio minio-mc
+$ minio server $(pwd)/minio-data --console-address ":9001"
+```
+
+- S3 API: `http://127.0.0.1:9000`
+- Веб-консоль: `http://127.0.0.1:9001` (логин/пароль по умолчанию: `minioadmin`/`minioadmin`)
+
+
 ## Фронтенд: локальный запуск
 
 Фронтенд должен быть в каталоге `frontend/`, которую отдаёт бэкенд через `StaticFiles`.

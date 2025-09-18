@@ -5,7 +5,7 @@ import aioboto3
 from aioboto3.session import AioConfig
 from furl import furl
 
-BUCKET_NAME = "testbucket"
+BUCKET_NAME = "fastai"
 
 
 async def main() -> None:
