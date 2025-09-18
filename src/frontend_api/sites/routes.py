@@ -16,6 +16,7 @@ from .schemas import (
 from ...core.config import AppSettings
 
 GENERATED_HTML_FILE = "index.html"
+GENERATED_SCREENSHOT_FILE = "index.png"
 MOCK_TITLE = "Тестовый сайт"
 MOCK_PROMPT = "Тестовый промпт для сайта"
 MOCK_SCREENSHOT_URL = None
@@ -35,6 +36,13 @@ def generated_html_file_url() -> str:
     return html_file_url.url
 
 
+def get_mock_screenshot_url() -> str:
+    screenshot_file_url = furl(settings.aws.endpoint_url)
+    screenshot_file_url.path.add(settings.aws.bucket_name)
+    screenshot_file_url.path.add(GENERATED_SCREENSHOT_FILE)
+    return screenshot_file_url.url
+
+
 settings = AppSettings()
 router = APIRouter(tags=["Sites"])
 
@@ -50,7 +58,7 @@ async def create_site(request: CreateSiteRequest) -> GeneratedSiteResponse:
         id=1,
         title=MOCK_TITLE,
         prompt=request.prompt,
-        screenshot_url=MOCK_SCREENSHOT_URL,
+        screenshot_url=get_mock_screenshot_url(),
         html_code_url=MOCK_HTML_CODE_URL,
         html_code_download_url=MOCK_HTML_CODE_DOWNLOAD_URL,
         created_at=MOCK_CREATED_AT,
@@ -95,7 +103,7 @@ async def get_sites_my() -> dict[str, list[SiteResponse]]:
                 id=1,
                 title=MOCK_TITLE,
                 prompt=MOCK_PROMPT,
-                screenshot_url=None,
+                screenshot_url=get_mock_screenshot_url(),
                 html_code_url=MOCK_HTML_CODE_URL,
                 html_code_download_url=MOCK_HTML_CODE_DOWNLOAD_URL,
                 created_at=MOCK_CREATED_AT,
@@ -115,7 +123,7 @@ async def get_site(site_id: int) -> SiteResponse:
         id=site_id,
         title=MOCK_TITLE,
         prompt=MOCK_PROMPT,
-        screenshot_url=MOCK_SCREENSHOT_URL,
+        screenshot_url=get_mock_screenshot_url(),
         html_code_url=MOCK_HTML_CODE_URL,
         html_code_download_url=MOCK_HTML_CODE_DOWNLOAD_URL,
         created_at=MOCK_CREATED_AT,
