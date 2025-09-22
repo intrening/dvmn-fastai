@@ -1,8 +1,7 @@
 from collections.abc import AsyncGenerator
 from datetime import datetime
 
-import anyio
-from fastapi import APIRouter
+from fastapi import APIRouter, Request
 from fastapi.responses import RedirectResponse, StreamingResponse
 from furl import furl
 from html_page_generator import AsyncPageGenerator
@@ -15,24 +14,23 @@ from .schemas import (
 )
 from ...core.config import AppSettings
 
-GENERATED_HTML_FILE = "index.html"
 GENERATED_SCREENSHOT_FILE = "index.png"
 MOCK_TITLE = "Тестовый сайт"
 MOCK_PROMPT = "Тестовый промпт для сайта"
 MOCK_SCREENSHOT_URL = None
-MOCK_HTML_CODE_URL = "http://127.0.0.1:8000/frontend-api/media/index.html"
-MOCK_HTML_CODE_DOWNLOAD_URL = (
-    "http://127.0.0.1:8000/frontend-api/media/index.html?response-content-disposition=attachment"
-)
 MOCK_CREATED_AT = datetime(2025, 6, 15, 18, 29, 56)
 MOCK_UPDATED_AT = datetime(2025, 6, 15, 18, 29, 56)
 
 
-def generated_html_file_url() -> str:
+def get_site_file_name(site_id: int) -> str:
+    return f"{site_id}.html"
+
+
+def get_site_html_file_url(site_id: int, is_download: bool = False) -> str:
     html_file_url = furl(settings.aws.endpoint_url)
     html_file_url.path.add(settings.aws.bucket_name)
-    html_file_url.path.add(GENERATED_HTML_FILE)
-    html_file_url.args["response-content-disposition"] = "inline"
+    html_file_url.path.add(get_site_file_name(site_id))
+    html_file_url.args["response-content-disposition"] = "inline" if not is_download else "attachment"
     return html_file_url.url
 
 
@@ -54,13 +52,14 @@ router = APIRouter(tags=["Sites"])
     description="Создает сайт для текущего пользователя.",
 )
 async def create_site(request: CreateSiteRequest) -> GeneratedSiteResponse:
+    site_id = 1
     return GeneratedSiteResponse(
-        id=1,
+        id=site_id,
         title=MOCK_TITLE,
         prompt=request.prompt,
         screenshot_url=get_mock_screenshot_url(),
-        html_code_url=MOCK_HTML_CODE_URL,
-        html_code_download_url=MOCK_HTML_CODE_DOWNLOAD_URL,
+        html_code_url=get_site_html_file_url(site_id),
+        html_code_download_url=get_site_html_file_url(site_id, is_download=True),
         created_at=MOCK_CREATED_AT,
         updated_at=MOCK_UPDATED_AT,
     )
@@ -71,24 +70,31 @@ async def create_site(request: CreateSiteRequest) -> GeneratedSiteResponse:
     summary="Сгенерировать сайт",
     description="Сгенерировать сайт по ID. Стримит HTML и параллельно пишет в index.html",
 )
-async def generate_site(site_id: int, request: SiteGenerateRequest) -> StreamingResponse:
+async def generate_site(site_id: int, request: SiteGenerateRequest, req: Request) -> StreamingResponse:
     html_chunks = AsyncPageGenerator(
         debug_mode=settings.debug,
     ).generate_html(request.prompt)
 
-    async def stream_and_write() -> AsyncGenerator[str, None]:
-        async with await anyio.open_file(GENERATED_HTML_FILE, mode="w", encoding="utf-8") as html_file:
-            try:
-                async for html_chunk in html_chunks:
-                    await html_file.write(html_chunk)
-                    yield html_chunk
-            except anyio.get_cancelled_exc_class():
-                with anyio.CancelScope(shield=True):
-                    async for html_chunk in html_chunks:
-                        await html_file.write(html_chunk)
-                raise
+    async def stream_and_upload() -> AsyncGenerator[str, None]:
+        s3_client = req.app.state.s3_client
+        buffer = bytearray()
+        try:
+            async for html_chunk in html_chunks:
+                if isinstance(html_chunk, str):
+                    buffer.extend(html_chunk.encode("utf-8"))
+                else:
+                    buffer.extend(html_chunk)
+                yield html_chunk
+        finally:
+            await s3_client.put_object(
+                Bucket=settings.aws.bucket_name,
+                Key=get_site_file_name(site_id),
+                Body=bytes(buffer),
+                ContentType="text/html",
+                ContentDisposition="inline",
+            )
 
-    return StreamingResponse(content=stream_and_write(), media_type="text/html")
+    return StreamingResponse(content=stream_and_upload(), media_type="text/html")
 
 
 @router.get(
@@ -97,15 +103,16 @@ async def generate_site(site_id: int, request: SiteGenerateRequest) -> Streaming
     description="Выдать список сайтов текущего пользователя",
 )
 async def get_sites_my() -> dict[str, list[SiteResponse]]:
+    site_id = 1
     return {
         "sites": [
             SiteResponse(
-                id=1,
+                id=site_id,
                 title=MOCK_TITLE,
                 prompt=MOCK_PROMPT,
                 screenshot_url=get_mock_screenshot_url(),
-                html_code_url=MOCK_HTML_CODE_URL,
-                html_code_download_url=MOCK_HTML_CODE_DOWNLOAD_URL,
+                html_code_url=get_site_html_file_url(site_id),
+                html_code_download_url=get_site_html_file_url(site_id, is_download=True),
                 created_at=MOCK_CREATED_AT,
                 updated_at=MOCK_UPDATED_AT,
             ),
@@ -124,20 +131,20 @@ async def get_site(site_id: int) -> SiteResponse:
         title=MOCK_TITLE,
         prompt=MOCK_PROMPT,
         screenshot_url=get_mock_screenshot_url(),
-        html_code_url=MOCK_HTML_CODE_URL,
-        html_code_download_url=MOCK_HTML_CODE_DOWNLOAD_URL,
+        html_code_url=get_site_html_file_url(site_id),
+        html_code_download_url=get_site_html_file_url(site_id, is_download=True),
         created_at=MOCK_CREATED_AT,
         updated_at=MOCK_UPDATED_AT,
     )
 
 
 @router.get(
-    "/media/index.html",
-    summary="Получить index.html",
+    "/media/{site_id}.html",
+    summary="Получить HTML код сайта",
     description="Вернуть ссылку на сайт (редирект на хранилище)",
 )
-async def get_index_html() -> RedirectResponse:
-    return RedirectResponse(url=generated_html_file_url(), status_code=307)
+async def get_index_html(site_id: int) -> RedirectResponse:
+    return RedirectResponse(url=get_site_html_file_url(site_id), status_code=307)
 
 
 __all__ = ["router"]
