@@ -1,10 +1,14 @@
+import logging
 from collections.abc import AsyncGenerator
 from datetime import datetime
 
 from fastapi import APIRouter, Request
 from fastapi.responses import RedirectResponse, StreamingResponse
 from furl import furl
+from gotenberg_api import GotenbergServerError, ScreenshotHTMLRequest
 from html_page_generator import AsyncPageGenerator
+
+from src.core.config import AppSettings
 
 from .schemas import (
     CreateSiteRequest,
@@ -12,9 +16,9 @@ from .schemas import (
     SiteGenerateRequest,
     SiteResponse,
 )
-from ...core.config import AppSettings
 
-GENERATED_SCREENSHOT_FILE = "index.png"
+logger = logging.getLogger(__name__)
+
 MOCK_TITLE = "Тестовый сайт"
 MOCK_PROMPT = "Тестовый промпт для сайта"
 MOCK_SCREENSHOT_URL = None
@@ -26,6 +30,10 @@ def get_site_file_name(site_id: int) -> str:
     return f"{site_id}.html"
 
 
+def get_generated_screenshot_file_name(site_id: int) -> str:
+    return f"{site_id}.{settings.gotenberg.screenshot_format}"
+
+
 def get_site_html_file_url(site_id: int, is_download: bool = False) -> str:
     html_file_url = furl(settings.aws.endpoint_url)
     html_file_url.path.add(settings.aws.bucket_name)
@@ -35,9 +43,10 @@ def get_site_html_file_url(site_id: int, is_download: bool = False) -> str:
 
 
 def get_mock_screenshot_url() -> str:
+    site_id = 1
     screenshot_file_url = furl(settings.aws.endpoint_url)
     screenshot_file_url.path.add(settings.aws.bucket_name)
-    screenshot_file_url.path.add(GENERATED_SCREENSHOT_FILE)
+    screenshot_file_url.path.add(get_generated_screenshot_file_name(site_id))
     return screenshot_file_url.url
 
 
@@ -71,28 +80,41 @@ async def create_site(request: CreateSiteRequest) -> GeneratedSiteResponse:
     description="Сгенерировать сайт по ID. Стримит HTML и параллельно пишет в index.html",
 )
 async def generate_site(site_id: int, request: SiteGenerateRequest, req: Request) -> StreamingResponse:
-    html_chunks = AsyncPageGenerator(
+    site_generator = AsyncPageGenerator(
         debug_mode=settings.debug,
-    ).generate_html(request.prompt)
+    )
+    html_chunks = site_generator.generate_html(request.prompt)
 
     async def stream_and_upload() -> AsyncGenerator[str, None]:
+        async for html_chunk in html_chunks:
+            yield html_chunk
+
+        html_code = site_generator.html_page.html_code
         s3_client = req.app.state.s3_client
-        buffer = bytearray()
+        await s3_client.put_object(
+            Bucket=settings.aws.bucket_name,
+            Key=get_site_file_name(site_id),
+            Body=html_code.encode("utf-8"),
+            ContentType="text/html",
+            ContentDisposition="inline",
+        )
+
         try:
-            async for html_chunk in html_chunks:
-                if isinstance(html_chunk, str):
-                    buffer.extend(html_chunk.encode("utf-8"))
-                else:
-                    buffer.extend(html_chunk)
-                yield html_chunk
-        finally:
+            client = req.app.state.gotenberg_client
+            screenshot_bytes = await ScreenshotHTMLRequest(
+                index_html=html_code,
+                width=settings.gotenberg.screenshot_width,
+                format=settings.gotenberg.screenshot_format,
+                wait_delay=settings.gotenberg.wait_delay,
+            ).asend(client)
             await s3_client.put_object(
                 Bucket=settings.aws.bucket_name,
-                Key=get_site_file_name(site_id),
-                Body=bytes(buffer),
-                ContentType="text/html",
-                ContentDisposition="inline",
+                Key=get_generated_screenshot_file_name(site_id),
+                Body=screenshot_bytes,
+                ContentType=f"image/{settings.gotenberg.screenshot_format}",
             )
+        except GotenbergServerError as e:
+            logger.error(e)
 
     return StreamingResponse(content=stream_and_upload(), media_type="text/html")
 

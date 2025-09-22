@@ -1,4 +1,5 @@
 from enum import Enum
+from typing import Any
 
 from pydantic import Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -38,9 +39,13 @@ class GotenbergSettings(BaseSettings):
     )
     wait_delay: int = Field(
         default=8,
-        description="Gotenberg screenshot wait delay",
+        description="Gotenberg screenshot wait delay (должен быть строго меньше timeout)",
         ge=1,
     )
+
+    def model_post_init(self, __context: Any) -> None:
+        if self.wait_delay >= self.timeout:
+            raise ValueError("wait_delay должен быть строго меньше timeout")
 
 
 class AWSSettings(BaseSettings):
