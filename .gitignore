@@ -11,3 +11,6 @@ src/frontend/frontend_files/
 *.env.local
 index.html
 minio-data/
+.ruff_cache/
+.mypy_cache/
+.claude/

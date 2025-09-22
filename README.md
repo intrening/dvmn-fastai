@@ -56,3 +56,40 @@
 **Важно:**  
 Не публикуйте и не передавайте файл `.env` третьим лицам.  
 Убедитесь, что `.env` добавлен в `.gitignore`!
+
+
+## Работа с S3/MinIO
+
+Для локальной разработки используем MinIO как S3-совместимое хранилище.
+
+- Как установить и запустить MinIO локально — смотрите раздел «Локальное S3-хранилище MinIO для разработки» в [`CONTRIBUTING.md`](./CONTRIBUTING.md).
+
+### Настройка переменных окружения для S3
+
+Добавьте в ваш `.env` блок настроек `aws` (значения ниже подходят для локального MinIO):
+
+```env
+AWS__ACCESS_KEY=minioadmin
+AWS__SECRET_KEY=minioadmin
+AWS__ENDPOINT_URL=http://127.0.0.1:9000
+AWS__BUCKET_NAME=testbucket
+# Опционально
+AWS__READ_TIMEOUT=30
+AWS__CONNECT_TIMEOUT=10
+AWS__MAX_POOL_CONNECTIONS=10
+```
+
+### Создание бакета и проверка
+
+1. Создайте бакет и сделайте его публичным (если ещё не создан):
+   ```bash
+   mc alias set local http://127.0.0.1:9000 minioadmin minioadmin
+   mc mb local/testbucket || echo "Bucket already exists"
+   mc anonymous set download local/testbucket
+   ```
+2. Быстрый тест загрузки через скрипт:
+   ```bash
+   uv run python minio_prototype.py
+   ```
+   Скрипт загрузит `index.html` в бакет и выведет ссылку вида:
+   `http://127.0.0.1:9000/testbucket/index.html?response-content-disposition=inline`
