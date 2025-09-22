@@ -1,5 +1,46 @@
+from enum import Enum
+
 from pydantic import Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+class ValidScreenshotFormats(str, Enum):
+    PNG = "png"
+    JPEG = "jpeg"
+    WEBP = "webp"
+
+
+class GotenbergSettings(BaseSettings):
+    """Gotenberg settings"""
+
+    screenshot_width: int = Field(
+        default=600,
+        description="Gotenberg screenshot width",
+        ge=1,
+    )
+    screenshot_format: ValidScreenshotFormats = Field(
+        default=ValidScreenshotFormats.PNG,
+        description="Gotenberg screenshot format",
+    )
+    url: str = Field(
+        ...,
+        description="Gotenberg URL",
+    )
+    max_connections: int = Field(
+        default=5,
+        description="Gotenberg max connections",
+        ge=1,
+    )
+    timeout: int = Field(
+        default=10,
+        description="Gotenberg timeout",
+        ge=1,
+    )
+    wait_delay: int = Field(
+        default=8,
+        description="Gotenberg screenshot wait delay",
+        ge=1,
+    )
 
 
 class AWSSettings(BaseSettings):
@@ -106,5 +147,5 @@ class AppSettings(BaseSettings):
     unsplash: UnsplashSettings
     deepseek: DeepSeekSettings
     aws: AWSSettings
-
+    gotenberg: GotenbergSettings
     debug: bool = False
