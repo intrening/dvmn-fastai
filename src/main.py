@@ -10,28 +10,33 @@ from httpx import Limits
 
 from .core.config import AppSettings
 from .frontend import create_frontend_app
-from .frontend_api.app import api_router as frontend_api_router
+from .frontend_api.app import create_frontend_api_app
 
 settings = AppSettings()
 logger = logging.getLogger(__name__)
 
 
-@asynccontextmanager
-async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
+async def create_s3_client() -> httpx.AsyncClient:
     s3_config = AioConfig(
-        max_pool_connections=settings.aws.max_pool_connections,
-        connect_timeout=settings.aws.connect_timeout,
-        read_timeout=settings.aws.read_timeout,
+        max_pool_connections=settings.s3.max_pool_connections,
+        connect_timeout=settings.s3.connect_timeout,
+        read_timeout=settings.s3.read_timeout,
     )
     s3_session = Session(
-        aws_access_key_id=settings.aws.access_key.get_secret_value(),
-        aws_secret_access_key=settings.aws.secret_key.get_secret_value(),
+        aws_access_key_id=settings.s3.access_key.get_secret_value(),
+        aws_secret_access_key=settings.s3.secret_key.get_secret_value(),
     )
     s3_client = s3_session.client(
         "s3",
-        endpoint_url=settings.aws.endpoint_url,
+        endpoint_url=settings.s3.endpoint_url,
         config=s3_config,
     )
+    return s3_client
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
+    s3_client = await create_s3_client()
     gotenberg_client = httpx.AsyncClient(
         base_url=settings.gotenberg.url,
         timeout=settings.gotenberg.timeout,
@@ -58,7 +63,9 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 
 
 app = FastAPI(debug=settings.debug, lifespan=lifespan)
-app.include_router(frontend_api_router)
+
+frontend_api_app = create_frontend_api_app()
+app.mount("/frontend-api", frontend_api_app)
 
 frontend_app = create_frontend_app()
 app.mount("/", frontend_app)

@@ -1,7 +1,7 @@
 from enum import Enum
 from typing import Any
 
-from pydantic import Field, SecretStr
+from pydantic import BaseModel, Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -11,7 +11,7 @@ class ValidScreenshotFormats(str, Enum):
     WEBP = "webp"
 
 
-class GotenbergSettings(BaseSettings):
+class GotenbergSettings(BaseModel):
     """Gotenberg settings"""
 
     screenshot_width: int = Field(
@@ -48,7 +48,7 @@ class GotenbergSettings(BaseSettings):
             raise ValueError("wait_delay должен быть строго меньше timeout")
 
 
-class AWSSettings(BaseSettings):
+class S3Settings(BaseModel):
     """AWS settings"""
 
     access_key: SecretStr = Field(
@@ -84,7 +84,7 @@ class AWSSettings(BaseSettings):
     )
 
 
-class DeepSeekSettings(BaseSettings):
+class DeepSeekSettings(BaseModel):
     """DeepSeek API settings"""
 
     api_key: SecretStr = Field(
@@ -111,7 +111,7 @@ class DeepSeekSettings(BaseSettings):
     )
 
 
-class UnsplashSettings(BaseSettings):
+class UnsplashSettings(BaseModel):
     """Unsplash API settings"""
 
     app_id: str = Field(
@@ -151,6 +151,6 @@ class AppSettings(BaseSettings):
 
     unsplash: UnsplashSettings
     deepseek: DeepSeekSettings
-    aws: AWSSettings
+    s3: S3Settings
     gotenberg: GotenbergSettings
     debug: bool = False
