@@ -35,8 +35,8 @@ def get_generated_screenshot_file_name(site_id: int) -> str:
 
 
 def get_site_html_file_url(site_id: int, is_download: bool = False) -> str:
-    html_file_url = furl(settings.aws.endpoint_url)
-    html_file_url.path.add(settings.aws.bucket_name)
+    html_file_url = furl(settings.s3.endpoint_url)
+    html_file_url.path.add(settings.s3.bucket_name)
     html_file_url.path.add(get_site_file_name(site_id))
     html_file_url.args["response-content-disposition"] = "inline" if not is_download else "attachment"
     return html_file_url.url
@@ -44,8 +44,8 @@ def get_site_html_file_url(site_id: int, is_download: bool = False) -> str:
 
 def get_mock_screenshot_url() -> str:
     site_id = 1
-    screenshot_file_url = furl(settings.aws.endpoint_url)
-    screenshot_file_url.path.add(settings.aws.bucket_name)
+    screenshot_file_url = furl(settings.s3.endpoint_url)
+    screenshot_file_url.path.add(settings.s3.bucket_name)
     screenshot_file_url.path.add(get_generated_screenshot_file_name(site_id))
     return screenshot_file_url.url
 
@@ -83,43 +83,39 @@ async def generate_site(site_id: int, request: SiteGenerateRequest, req: Request
     site_generator = AsyncPageGenerator(
         debug_mode=settings.debug,
     )
-    html_chunks = site_generator.generate_html(request.prompt)
+    html_chunks = site_generator(request.prompt)
 
     async def stream_and_upload() -> AsyncGenerator[str, None]:
-        try:
+        with anyio.CancelScope(shield=True):
             async for html_chunk in html_chunks:
                 yield html_chunk
-        except anyio.get_cancelled_exc_class():
-            with anyio.CancelScope(shield=True):
-                async for _ in html_chunks:
-                    pass
 
-        html_code = site_generator.html_page.html_code
-        s3_client = req.app.state.s3_client
-        await s3_client.put_object(
-            Bucket=settings.aws.bucket_name,
-            Key=get_site_file_name(site_id),
-            Body=html_code.encode("utf-8"),
-            ContentType="text/html",
-            ContentDisposition="inline",
-        )
-
-        try:
-            client = req.app.state.gotenberg_client
-            screenshot_bytes = await ScreenshotHTMLRequest(
-                index_html=html_code,
-                width=settings.gotenberg.screenshot_width,
-                format=settings.gotenberg.screenshot_format,
-                wait_delay=settings.gotenberg.wait_delay,
-            ).asend(client)
+            html_code = site_generator.html_page.html_code
+            s3_client = req.app.state.s3_client
             await s3_client.put_object(
-                Bucket=settings.aws.bucket_name,
-                Key=get_generated_screenshot_file_name(site_id),
-                Body=screenshot_bytes,
-                ContentType="image/png",
+                Bucket=settings.s3.bucket_name,
+                Key=get_site_file_name(site_id),
+                Body=html_code.encode("utf-8"),
+                ContentType="text/html",
+                ContentDisposition="inline",
             )
-        except GotenbergServerError as e:
-            logger.error(e)
+
+            try:
+                client = req.app.state.gotenberg_client
+                screenshot_bytes = await ScreenshotHTMLRequest(
+                    index_html=html_code,
+                    width=settings.gotenberg.screenshot_width,
+                    format=settings.gotenberg.screenshot_format,
+                    wait_delay=settings.gotenberg.wait_delay,
+                ).asend(client)
+                await s3_client.put_object(
+                    Bucket=settings.s3.bucket_name,
+                    Key=get_generated_screenshot_file_name(site_id),
+                    Body=screenshot_bytes,
+                    ContentType="image/png",
+                )
+            except GotenbergServerError as e:
+                logger.error(e)
 
     return StreamingResponse(content=stream_and_upload(), media_type="text/html")
 
