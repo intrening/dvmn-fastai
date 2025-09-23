@@ -58,7 +58,8 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         ),
     ):
         app.state.gotenberg_client = entered_gotenberg_client
-        app.state.s3_client = entered_s3_client
+        frontend_api_app.state.gotenberg_client = entered_gotenberg_client
+        frontend_api_app.state.s3_client = entered_s3_client
         yield
 
 
