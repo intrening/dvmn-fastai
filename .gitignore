@@ -9,8 +9,6 @@ tmp*
 src/frontend/frontend_files/
 .vscode/
 *.env.local
-index.html
 minio-data/
 .ruff_cache/
 .mypy_cache/
-.claude/

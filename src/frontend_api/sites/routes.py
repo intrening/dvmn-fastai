@@ -2,6 +2,7 @@ import logging
 from collections.abc import AsyncGenerator
 from datetime import datetime
 
+import anyio
 from fastapi import APIRouter, Request
 from fastapi.responses import RedirectResponse, StreamingResponse
 from furl import furl
@@ -21,7 +22,6 @@ logger = logging.getLogger(__name__)
 
 MOCK_TITLE = "Тестовый сайт"
 MOCK_PROMPT = "Тестовый промпт для сайта"
-MOCK_SCREENSHOT_URL = None
 MOCK_CREATED_AT = datetime(2025, 6, 15, 18, 29, 56)
 MOCK_UPDATED_AT = datetime(2025, 6, 15, 18, 29, 56)
 
@@ -31,7 +31,7 @@ def get_site_file_name(site_id: int) -> str:
 
 
 def get_generated_screenshot_file_name(site_id: int) -> str:
-    return f"{site_id}.{settings.gotenberg.screenshot_format}"
+    return f"{site_id}.png"
 
 
 def get_site_html_file_url(site_id: int, is_download: bool = False) -> str:
@@ -86,8 +86,13 @@ async def generate_site(site_id: int, request: SiteGenerateRequest, req: Request
     html_chunks = site_generator.generate_html(request.prompt)
 
     async def stream_and_upload() -> AsyncGenerator[str, None]:
-        async for html_chunk in html_chunks:
-            yield html_chunk
+        try:
+            async for html_chunk in html_chunks:
+                yield html_chunk
+        except anyio.get_cancelled_exc_class():
+            with anyio.CancelScope(shield=True):
+                async for _ in html_chunks:
+                    pass
 
         html_code = site_generator.html_page.html_code
         s3_client = req.app.state.s3_client
@@ -111,7 +116,7 @@ async def generate_site(site_id: int, request: SiteGenerateRequest, req: Request
                 Bucket=settings.aws.bucket_name,
                 Key=get_generated_screenshot_file_name(site_id),
                 Body=screenshot_bytes,
-                ContentType=f"image/{settings.gotenberg.screenshot_format}",
+                ContentType="image/png",
             )
         except GotenbergServerError as e:
             logger.error(e)
