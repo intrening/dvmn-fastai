@@ -1,6 +1,7 @@
 import logging
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 import httpx
 from aioboto3.session import AioConfig, Session
@@ -9,10 +10,17 @@ from html_page_generator import AsyncDeepseekClient, AsyncUnsplashClient
 from httpx import Limits
 
 from .core.config import AppSettings
+from .core.logs import setup_logging
 from .frontend import create_frontend_app
 from .frontend_api.app import create_frontend_api_app
 
 settings = AppSettings()
+
+setup_logging(
+    level=logging.DEBUG if settings.debug else logging.INFO,
+    log_file=Path("logs/app.log"),
+)
+
 logger = logging.getLogger(__name__)
 
 

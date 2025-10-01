@@ -12,3 +12,4 @@ src/frontend/frontend_files/
 minio-data/
 .ruff_cache/
 .mypy_cache/
+logs/
