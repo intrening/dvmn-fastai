@@ -43,8 +43,20 @@
 - `UNSPLASH__MAX_CONNECTIONS` — максимальное количество одновременных соединений (опционально).
 - `UNSPLASH__TIMEOUT` — таймаут запросов в секундах (по умолчанию 20).
 
-**Где получить:**  
+**Где получить:**
 Создайте приложение и получите ключи на [Unsplash Developers](https://unsplash.com/documentation#registering-your-application).
+
+### Переменные для Gotenberg API
+
+- `GOTENBERG__URL` — URL сервиса Gotenberg для создания скриншотов (по умолчанию: `https://demo.gotenberg.dev`).
+- `GOTENBERG__SCREENSHOT_WIDTH` — ширина скриншота в пикселях (по умолчанию: 600).
+- `GOTENBERG__SCREENSHOT_FORMAT` — формат скриншота: `png`, `jpeg` или `webp` (по умолчанию: `png`).
+- `GOTENBERG__MAX_CONNECTIONS` — максимальное количество одновременных соединений (по умолчанию: 5).
+- `GOTENBERG__TIMEOUT` — таймаут запросов в секундах (по умолчанию: 10).
+- `GOTENBERG__WAIT_DELAY` — задержка перед созданием скриншота в секундах, должна быть строго меньше `TIMEOUT` (по умолчанию: 8).
+
+**Где получить:**
+Gotenberg — это open-source сервис для конвертации документов и создания скриншотов. Вы можете использовать публичное демо `https://demo.gotenberg.dev` или развернуть собственный инстанс. Подробнее на [Gotenberg](https://gotenberg.dev/).
 
 ### Общие переменные
 

@@ -4,11 +4,11 @@ from collections.abc import AsyncGenerator
 import anyio
 from fastapi import APIRouter, Request
 from fastapi.responses import RedirectResponse, StreamingResponse
-from gotenberg_api import GotenbergServerError, ScreenshotHTMLRequest
+from gotenberg_api import GotenbergServerError
 from html_page_generator import AsyncPageGenerator
 
 from src.core.config import AppSettings
-from src.core.dependencies import get_s3_service
+from src.core.dependencies import get_gotenberg_service, get_s3_service
 from src.frontend_api.mocks import (
     MOCK_SITE_HTML_FILE_NAME,
     MOCK_SITE_SCREENSHOT_FILE_NAME,
@@ -66,13 +66,10 @@ async def generate_site(site_id: int, request: SiteGenerateRequest, req: Request
             )
 
             try:
-                client = req.app.state.gotenberg_client
-                screenshot_bytes = await ScreenshotHTMLRequest(
-                    index_html=html_code,
-                    width=settings.gotenberg.screenshot_width,
-                    format=settings.gotenberg.screenshot_format,
-                    wait_delay=settings.gotenberg.wait_delay,
-                ).asend(client)
+                gotenberg_service = await get_gotenberg_service(req)
+                screenshot_bytes = await gotenberg_service.screenshot_html(
+                    html_code=html_code,
+                )
                 await s3_service.upload_file(
                     data=screenshot_bytes,
                     object_name=MOCK_SITE_SCREENSHOT_FILE_NAME,
