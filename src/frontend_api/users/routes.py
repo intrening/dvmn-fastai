@@ -1,8 +1,7 @@
-from datetime import datetime
-
 from fastapi import APIRouter
 
 from .schemas import UserDetailsResponse
+from ..mocks import get_mock_user_details_response
 
 router = APIRouter(tags=["Users"])
 
@@ -14,14 +13,7 @@ router = APIRouter(tags=["Users"])
     description="Возвращает данные профиля текущего авторизованного пользователя.",
 )
 async def me() -> UserDetailsResponse:
-    return UserDetailsResponse(
-        email="example@example.com",
-        is_active=True,
-        profile_id=1,
-        registered_at=datetime(2025, 6, 15, 18, 29, 56),
-        updated_at=datetime(2025, 6, 15, 18, 29, 56),
-        username="user123",
-    )
+    return get_mock_user_details_response()
 
 
 __all__ = ["router"]
