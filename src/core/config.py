@@ -53,33 +53,33 @@ class S3Settings(BaseModel):
 
     access_key: SecretStr = Field(
         ...,
-        description="AWS access key",
+        description="S3 access key",
     )
     secret_key: SecretStr = Field(
         ...,
-        description="AWS secret key",
+        description="S3 secret key",
     )
     endpoint_url: str = Field(
         ...,
-        description="AWS endpoint URL",
+        description="S3 endpoint URL",
     )
     bucket_name: str = Field(
         ...,
-        description="AWS bucket name",
+        description="S3 bucket name",
     )
     read_timeout: int = Field(
         default=20,
-        description="AWS read timeout",
+        description="S3 read timeout",
         ge=1,
     )
     connect_timeout: int = Field(
         default=10,
-        description="AWS connect timeout",
+        description="S3 connect timeout",
         ge=1,
     )
     max_pool_connections: int = Field(
         default=10,
-        description="AWS max pool connections",
+        description="S3 max pool connections",
         ge=1,
     )
 

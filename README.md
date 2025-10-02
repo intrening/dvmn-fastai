@@ -32,7 +32,6 @@
 - `DEEPSEEK__BASE_URL` — базовый URL для API DeepSeek (по умолчанию: `https://api.deepseek.com/v1`).
 - `DEEPSEEK__MODEL` — название используемой модели DeepSeek (по умолчанию: `deepseek-chat`).
 
-
 **Где получить:**  
 Зарегистрируйтесь и получите API-ключ на [DeepSeek API](https://platform.deepseek.com/docs/overview/authentication).
 
@@ -57,7 +56,6 @@
 Не публикуйте и не передавайте файл `.env` третьим лицам.  
 Убедитесь, что `.env` добавлен в `.gitignore`!
 
-
 ## Работа с S3/MinIO
 
 Для локальной разработки используем MinIO как S3-совместимое хранилище.
@@ -69,14 +67,14 @@
 Добавьте в ваш `.env` блок настроек `aws` (значения ниже подходят для локального MinIO):
 
 ```env
-AWS__ACCESS_KEY=minioadmin
-AWS__SECRET_KEY=minioadmin
-AWS__ENDPOINT_URL=http://127.0.0.1:9000
-AWS__BUCKET_NAME=testbucket
+S3__ACCESS_KEY=minioadmin - описание, что за переменная всем
+S3__SECRET_KEY=minioadmin
+S3__ENDPOINT_URL=http://127.0.0.1:9000
+SWS__BUCKET_NAME=testbucket
 # Опционально
-AWS__READ_TIMEOUT=30
-AWS__CONNECT_TIMEOUT=10
-AWS__MAX_POOL_CONNECTIONS=10
+SWS__READ_TIMEOUT=30
+SWS__CONNECT_TIMEOUT=10
+SWS__MAX_POOL_CONNECTIONS=10
 ```
 
 ### Создание бакета и проверка

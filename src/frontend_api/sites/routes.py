@@ -10,6 +10,7 @@ from gotenberg_api import GotenbergServerError, ScreenshotHTMLRequest
 from html_page_generator import AsyncPageGenerator
 
 from src.core.config import AppSettings
+from src.core.dependencies import get_s3_service
 
 from .schemas import (
     CreateSiteRequest,
@@ -83,13 +84,12 @@ async def generate_site(site_id: int, request: SiteGenerateRequest, req: Request
                 yield html_chunk
 
             html_code = site_generator.html_page.html_code
-            s3_client = req.app.state.s3_client
-            await s3_client.put_object(
-                Bucket=settings.s3.bucket_name,
-                Key=MOCK_SITE_HTML_FILE_NAME,
-                Body=html_code.encode("utf-8"),
-                ContentType="text/html",
-                ContentDisposition="inline",
+            s3_service = await get_s3_service(req)
+            await s3_service.upload_file(
+                data=html_code.encode("utf-8"),
+                object_name=MOCK_SITE_HTML_FILE_NAME,
+                content_type="text/html",
+                content_disposition="inline",
             )
 
             try:
@@ -100,11 +100,10 @@ async def generate_site(site_id: int, request: SiteGenerateRequest, req: Request
                     format=settings.gotenberg.screenshot_format,
                     wait_delay=settings.gotenberg.wait_delay,
                 ).asend(client)
-                await s3_client.put_object(
-                    Bucket=settings.s3.bucket_name,
-                    Key=MOCK_SITE_SCREENSHOT_FILE_NAME,
-                    Body=screenshot_bytes,
-                    ContentType="image/png",
+                await s3_service.upload_file(
+                    data=screenshot_bytes,
+                    object_name=MOCK_SITE_SCREENSHOT_FILE_NAME,
+                    content_type="image/png",
                 )
             except GotenbergServerError as e:
                 logger.error(e)
