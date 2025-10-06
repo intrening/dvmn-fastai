@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict, Field, PositiveInt
+from pydantic import BaseModel, ConfigDict, Field, HttpUrl, PositiveInt
 from pydantic.alias_generators import to_camel
 
 
@@ -27,9 +27,9 @@ class SiteResponse(BaseModel):
 
     id: PositiveInt = Field(description="ID сайта")
     title: str = Field(description="Название сайта")
-    html_code_url: str | None = Field(default=None, description="URL HTML кода сайта")
-    html_code_download_url: str | None = Field(default=None, description="URL скачивания HTML кода сайта")
-    screenshot_url: str | None = Field(default=None, description="URL скриншота сайта")
+    html_code_url: HttpUrl | None = Field(default=None, description="URL HTML кода сайта")
+    html_code_download_url: HttpUrl | None = Field(default=None, description="URL скачивания HTML кода сайта")
+    screenshot_url: HttpUrl | None = Field(default=None, description="URL скриншота сайта")
     prompt: str = Field(description="Prompt для создания сайта")
     created_at: datetime = Field(description="Дата создания сайта")
     updated_at: datetime = Field(description="Дата обновления сайта")
