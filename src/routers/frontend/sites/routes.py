@@ -9,19 +9,19 @@ from html_page_generator import AsyncPageGenerator
 
 from src.core.config import settings
 from src.core.dependencies import get_gotenberg_service, get_s3_service
-from src.frontend_api.mocks import (
-    MOCK_SITE_HTML_FILE_NAME,
-    MOCK_SITE_SCREENSHOT_FILE_NAME,
-    get_mock_generated_site_response,
-    get_mock_site_html_file_url,
-    get_mock_site_response,
-)
 
 from .schemas import (
     CreateSiteRequest,
     GeneratedSiteResponse,
     SiteGenerateRequest,
     SiteResponse,
+)
+from ..mocks import (
+    MOCK_SITE_HTML_FILE_NAME,
+    MOCK_SITE_SCREENSHOT_FILE_NAME,
+    get_mock_generated_site_response,
+    get_mock_site_html_file_url,
+    get_mock_site_response,
 )
 
 logger = logging.getLogger(__name__)

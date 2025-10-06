@@ -9,7 +9,7 @@ from html_page_generator import AsyncDeepseekClient, AsyncUnsplashClient
 from .core.config import settings
 from .core.logs import setup_logging
 from .frontend import create_frontend_app
-from .frontend_api.app import create_frontend_api_app
+from .routers.frontend import router as frontend_router
 from .services.gotenberg import GotenbergService
 from .services.s3 import S3Service
 
@@ -43,8 +43,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 
 app = FastAPI(debug=settings.debug, lifespan=lifespan)
 
-frontend_api_app = create_frontend_api_app()
-app.mount("/frontend-api", frontend_api_app)
+app.include_router(frontend_router, prefix="/frontend-api")
 
 frontend_app = create_frontend_app()
 app.mount("/", frontend_app)

@@ -3,8 +3,8 @@ from datetime import datetime
 from furl import furl
 
 from src.core.config import settings
-from src.frontend_api.sites.schemas import CreateSiteRequest, GeneratedSiteResponse, SiteResponse
 
+from .sites.schemas import CreateSiteRequest, GeneratedSiteResponse, SiteResponse
 from .users.schemas import UserDetailsResponse
 
 MOCK_SITE_ID = 1
