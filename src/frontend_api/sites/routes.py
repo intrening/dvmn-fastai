@@ -40,6 +40,38 @@ async def create_site(request: CreateSiteRequest) -> GeneratedSiteResponse:
     return get_mock_generated_site_response(request)
 
 
+async def _stream_and_upload(
+    site_generator: AsyncPageGenerator,
+    request: SiteGenerateRequest,
+    req: Request,
+) -> AsyncGenerator:
+    with anyio.CancelScope(shield=True):
+        async for html_chunk in site_generator(request.prompt):
+            yield html_chunk
+
+        html_code = site_generator.html_page.html_code
+        s3_service = await get_s3_service(req)
+        await s3_service.upload_file(
+            data=html_code.encode("utf-8"),
+            object_name=MOCK_SITE_HTML_FILE_NAME,
+            content_type="text/html",
+            content_disposition="inline",
+        )
+
+        try:
+            gotenberg_service = await get_gotenberg_service(req)
+            screenshot_bytes = await gotenberg_service.screenshot_html(
+                html_code=html_code,
+            )
+        except GotenbergServerError as e:
+            logger.error(e)
+        await s3_service.upload_file(
+            data=screenshot_bytes,
+            object_name=MOCK_SITE_SCREENSHOT_FILE_NAME,
+            content_type="image/png",
+        )
+
+
 @router.post(
     "/sites/{site_id}/generate",
     summary="Сгенерировать сайт",
@@ -49,35 +81,7 @@ async def generate_site(site_id: int, request: SiteGenerateRequest, req: Request
     site_generator = AsyncPageGenerator(
         debug_mode=settings.debug,
     )
-
-    async def stream_and_upload() -> AsyncGenerator[str, None]:
-        with anyio.CancelScope(shield=True):
-            async for html_chunk in site_generator(request.prompt):
-                yield html_chunk
-
-            html_code = site_generator.html_page.html_code
-            s3_service = await get_s3_service(req)
-            await s3_service.upload_file(
-                data=html_code.encode("utf-8"),
-                object_name=MOCK_SITE_HTML_FILE_NAME,
-                content_type="text/html",
-                content_disposition="inline",
-            )
-
-            try:
-                gotenberg_service = await get_gotenberg_service(req)
-                screenshot_bytes = await gotenberg_service.screenshot_html(
-                    html_code=html_code,
-                )
-                await s3_service.upload_file(
-                    data=screenshot_bytes,
-                    object_name=MOCK_SITE_SCREENSHOT_FILE_NAME,
-                    content_type="image/png",
-                )
-            except GotenbergServerError as e:
-                logger.error(e)
-
-    return StreamingResponse(content=stream_and_upload(), media_type="text/html")
+    return StreamingResponse(content=_stream_and_upload(site_generator, request, req), media_type="text/html")
 
 
 @router.get(
