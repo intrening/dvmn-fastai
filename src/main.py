@@ -10,8 +10,8 @@ from .core.config import settings
 from .core.logs import setup_logging
 from .frontend import create_frontend_app
 from .routers.frontend import router as frontend_router
-from .services.gotenberg import GotenbergService
-from .services.s3 import S3Service
+from .services.gotenberg import create_gotenberg_client
+from .services.s3 import S3StorageService
 
 setup_logging(
     level=logging.DEBUG if settings.debug else logging.INFO,
@@ -24,8 +24,8 @@ logger = logging.getLogger(__name__)
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     async with (
-        GotenbergService(settings.gotenberg) as gotenberg_service,
-        S3Service(settings.s3) as s3_service,
+        create_gotenberg_client(settings.gotenberg) as gotenberg_client,
+        S3StorageService(settings.s3) as storage_service,
         AsyncUnsplashClient.setup(
             unsplash_client_id=settings.unsplash.access_key.get_secret_value(),
             timeout=settings.unsplash.timeout,
@@ -36,8 +36,8 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
             settings.deepseek.model,
         ),
     ):
-        app.state.gotenberg_service = gotenberg_service
-        app.state.s3_service = s3_service
+        app.state.gotenberg_client = gotenberg_client
+        app.state.storage_service = storage_service
         yield
 
 

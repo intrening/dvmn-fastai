@@ -8,6 +8,7 @@ from gotenberg_api import GotenbergServerError
 from html_page_generator import AsyncPageGenerator
 
 from src.core.config import settings
+from src.services.gotenberg import screenshot_html
 
 from .schemas import (
     CreateSiteRequest,
@@ -49,8 +50,8 @@ async def _stream_and_upload(
             yield html_chunk
 
         html_code = site_generator.html_page.html_code
-        s3_service = request.app.state.s3_service
-        await s3_service.upload_file(
+        storage_service = request.app.state.storage_service
+        await storage_service.upload_file(
             data=html_code.encode("utf-8"),
             object_name=MOCK_SITE_HTML_FILE_NAME,
             content_type="text/html",
@@ -58,14 +59,16 @@ async def _stream_and_upload(
         )
 
         try:
-            gotenberg_service = request.app.state.gotenberg_service
-            screenshot_bytes = await gotenberg_service.screenshot_html(
+            gotenberg_client = request.app.state.gotenberg_client
+            screenshot_bytes = await screenshot_html(
+                client=gotenberg_client,
+                settings=settings.gotenberg,
                 html_code=html_code,
             )
         except GotenbergServerError as e:
             logger.error(e)
         else:
-            await s3_service.upload_file(
+            await storage_service.upload_file(
                 data=screenshot_bytes,
                 object_name=MOCK_SITE_SCREENSHOT_FILE_NAME,
                 content_type="image/png",
