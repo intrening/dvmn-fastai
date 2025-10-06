@@ -22,6 +22,7 @@
 - [GNU Make](https://www.gnu.org/software/make/)
 
 Вы можете проверить, установлены ли эти программы с помощью команд:
+
 ```shell
 $ git --version
 git version 2.37.1.windows.1
@@ -77,6 +78,7 @@ pre-commit installed at .git/hooks/pre-commit
 В последующем при коммите автоматически будут запускаться линтеры и другие проверки. Если проверки не пройдут, то коммит прервётся с ошибкой.
 
 Если вам потребуется сделать коммит без проверок, то вы можете отключить их с помощью флага `--no-verify`:
+
 ```shell
 git commit -m 'Message' --no-verify
 ```
@@ -140,6 +142,20 @@ $ minio server $(pwd)/minio-data --console-address ":9001"
 - S3 API: `http://127.0.0.1:9000`
 - Веб-консоль: `http://127.0.0.1:9001` (логин/пароль по умолчанию: `minioadmin`/`minioadmin`)
 
+### Создание бакета и проверка
+
+1. Создайте бакет и сделайте его публичным (если ещё не создан):
+   ```bash
+   mc alias set local http://127.0.0.1:9000 minioadmin minioadmin
+   mc mb local/testbucket || echo "Bucket already exists"
+   mc anonymous set download local/testbucket
+   ```
+2. Быстрый тест загрузки через скрипт:
+   ```bash
+   uv run python minio_prototype.py
+   ```
+   Скрипт загрузит `index.html` в бакет и выведет ссылку вида:
+   `http://127.0.0.1:9000/testbucket/index.html?response-content-disposition=inline`
 
 ## Фронтенд: локальный запуск
 
@@ -155,7 +171,7 @@ $ minio server $(pwd)/minio-data --console-address ":9001"
 3. Конфигурация фронтенда находится в файле [`frontend-settings.json`](./frontend-settings.json). По умолчанию `backendBaseUrl` указывает на одноимённый префикс API на том же хосте:
    ```json
    {
-     "backendBaseUrl": "/frontend-api",
+     "backendBaseUrl": "/frontend-api"
    }
    ```
    Если бэкенд запущен на другом хосте/порту, укажите полный URL, например:
