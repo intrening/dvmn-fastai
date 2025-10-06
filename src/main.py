@@ -6,14 +6,12 @@ from pathlib import Path
 from fastapi import FastAPI
 from html_page_generator import AsyncDeepseekClient, AsyncUnsplashClient
 
-from .core.config import AppSettings
+from .core.config import settings
 from .core.logs import setup_logging
 from .frontend import create_frontend_app
 from .frontend_api.app import create_frontend_api_app
 from .services.gotenberg import GotenbergService
 from .services.s3 import S3Service
-
-settings = AppSettings()
 
 setup_logging(
     level=logging.DEBUG if settings.debug else logging.INFO,

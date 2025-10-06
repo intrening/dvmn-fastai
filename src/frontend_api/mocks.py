@@ -2,12 +2,10 @@ from datetime import datetime
 
 from furl import furl
 
-from src.core.config import AppSettings
+from src.core.config import settings
 from src.frontend_api.sites.schemas import CreateSiteRequest, GeneratedSiteResponse, SiteResponse
 
 from .users.schemas import UserDetailsResponse
-
-settings = AppSettings()
 
 MOCK_SITE_ID = 1
 MOCK_TITLE = "Тестовый сайт"

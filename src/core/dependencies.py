@@ -4,13 +4,11 @@ import logging
 
 from fastapi import Request
 
-from ..core.config import AppSettings
+from ..core.config import settings
 from ..services.gotenberg import GotenbergService
 from ..services.s3 import S3Service
 
 logger = logging.getLogger(__name__)
-
-settings = AppSettings()
 
 
 async def get_s3_service(request: Request) -> S3Service:

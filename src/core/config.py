@@ -154,3 +154,6 @@ class AppSettings(BaseSettings):
     s3: S3Settings
     gotenberg: GotenbergSettings
     debug: bool = False
+
+
+settings = AppSettings()

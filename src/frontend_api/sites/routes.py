@@ -7,7 +7,7 @@ from fastapi.responses import RedirectResponse, StreamingResponse
 from gotenberg_api import GotenbergServerError
 from html_page_generator import AsyncPageGenerator
 
-from src.core.config import AppSettings
+from src.core.config import settings
 from src.core.dependencies import get_gotenberg_service, get_s3_service
 from src.frontend_api.mocks import (
     MOCK_SITE_HTML_FILE_NAME,
@@ -27,7 +27,6 @@ from .schemas import (
 logger = logging.getLogger(__name__)
 
 
-settings = AppSettings()
 router = APIRouter(tags=["Sites"])
 
 
