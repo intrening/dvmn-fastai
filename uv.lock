@@ -281,44 +281,40 @@ version = "0.0.1"
 source = { virtual = "." }
 dependencies = [
     { name = "aioboto3" },
-    { name = "aiofiles" },
-    { name = "aiohttp" },
-    { name = "editorconfig-checker" },
     { name = "fastapi", extra = ["standard"] },
     { name = "furl" },
     { name = "gotenberg-api" },
     { name = "html-page-generator" },
-    { name = "pre-commit" },
     { name = "pydantic" },
     { name = "pydantic-settings" },
-    { name = "ruff" },
 ]
 
 [package.dev-dependencies]
 dev = [
+    { name = "editorconfig-checker" },
     { name = "mypy" },
+    { name = "pre-commit" },
+    { name = "ruff" },
     { name = "types-aiofiles" },
 ]
 
 [package.metadata]
 requires-dist = [
     { name = "aioboto3", specifier = ">=15.1.0" },
-    { name = "aiofiles", specifier = ">=24.1.0" },
-    { name = "aiohttp", specifier = ">=3.12.15" },
-    { name = "editorconfig-checker", specifier = "==3.2.1" },
     { name = "fastapi", extras = ["standard"], specifier = "==0.115.12" },
     { name = "furl", specifier = ">=2.1.4" },
     { name = "gotenberg-api", git = "https://github.com/devmanorg/gotenberg-api.git" },
     { name = "html-page-generator", git = "https://github.com/devmanorg/html-page-generator.git" },
-    { name = "pre-commit", specifier = ">=4.3.0" },
     { name = "pydantic", specifier = ">=2.11.7" },
     { name = "pydantic-settings", specifier = ">=2.10.1" },
-    { name = "ruff", specifier = "==0.11.13" },
 ]
 
 [package.metadata.requires-dev]
 dev = [
+    { name = "editorconfig-checker", specifier = "==3.2.1" },
     { name = "mypy", specifier = ">=1.17.1" },
+    { name = "pre-commit", specifier = ">=4.3.0" },
+    { name = "ruff", specifier = "==0.11.13" },
     { name = "types-aiofiles", specifier = ">=24.1.0.20250822" },
 ]
 
