@@ -144,18 +144,13 @@ $ minio server $(pwd)/minio-data --console-address ":9001"
 
 ### Создание бакета и проверка
 
-1. Создайте бакет и сделайте его публичным (если ещё не создан):
-   ```bash
-   mc alias set local http://127.0.0.1:9000 minioadmin minioadmin
-   mc mb local/testbucket || echo "Bucket already exists"
-   mc anonymous set download local/testbucket
-   ```
-2. Быстрый тест загрузки через скрипт:
-   ```bash
-   uv run python minio_prototype.py
-   ```
-   Скрипт загрузит `index.html` в бакет и выведет ссылку вида:
-   `http://127.0.0.1:9000/testbucket/index.html?response-content-disposition=inline`
+Создайте бакет и сделайте его публичным (если ещё не создан):
+
+```bash
+mc alias set local http://127.0.0.1:9000 minioadmin minioadmin
+mc mb local/testbucket || echo "Bucket already exists"
+mc anonymous set download local/testbucket
+```
 
 ## Фронтенд: локальный запуск
 
