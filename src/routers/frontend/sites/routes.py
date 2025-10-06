@@ -8,7 +8,6 @@ from gotenberg_api import GotenbergServerError
 from html_page_generator import AsyncPageGenerator
 
 from src.core.config import settings
-from src.core.dependencies import get_gotenberg_service, get_s3_service
 
 from .schemas import (
     CreateSiteRequest,
@@ -42,15 +41,15 @@ async def create_site(request: CreateSiteRequest) -> GeneratedSiteResponse:
 
 async def _stream_and_upload(
     site_generator: AsyncPageGenerator,
-    request: SiteGenerateRequest,
-    req: Request,
+    payload: SiteGenerateRequest,
+    request: Request,
 ) -> AsyncGenerator:
     with anyio.CancelScope(shield=True):
-        async for html_chunk in site_generator(request.prompt):
+        async for html_chunk in site_generator(payload.prompt):
             yield html_chunk
 
         html_code = site_generator.html_page.html_code
-        s3_service = await get_s3_service(req)
+        s3_service = request.app.state.s3_service
         await s3_service.upload_file(
             data=html_code.encode("utf-8"),
             object_name=MOCK_SITE_HTML_FILE_NAME,
@@ -59,17 +58,18 @@ async def _stream_and_upload(
         )
 
         try:
-            gotenberg_service = await get_gotenberg_service(req)
+            gotenberg_service = request.app.state.gotenberg_service
             screenshot_bytes = await gotenberg_service.screenshot_html(
                 html_code=html_code,
             )
         except GotenbergServerError as e:
             logger.error(e)
-        await s3_service.upload_file(
-            data=screenshot_bytes,
-            object_name=MOCK_SITE_SCREENSHOT_FILE_NAME,
-            content_type="image/png",
-        )
+        else:
+            await s3_service.upload_file(
+                data=screenshot_bytes,
+                object_name=MOCK_SITE_SCREENSHOT_FILE_NAME,
+                content_type="image/png",
+            )
 
 
 @router.post(
@@ -77,11 +77,11 @@ async def _stream_and_upload(
     summary="Сгенерировать сайт",
     description="Сгенерировать сайт по ID. Стримит HTML и параллельно пишет в index.html",
 )
-async def generate_site(site_id: int, request: SiteGenerateRequest, req: Request) -> StreamingResponse:
+async def generate_site(site_id: int, payload: SiteGenerateRequest, req: Request) -> StreamingResponse:
     site_generator = AsyncPageGenerator(
         debug_mode=settings.debug,
     )
-    return StreamingResponse(content=_stream_and_upload(site_generator, request, req), media_type="text/html")
+    return StreamingResponse(content=_stream_and_upload(site_generator, payload, req), media_type="text/html")
 
 
 @router.get(
